@@ -16,9 +16,6 @@ greenlet==3.1.1
 # Vector Store
 qdrant-client==1.12.1
 
-# NLP — lightweight, no GPU needed
-spacy==3.8.3
-
 # File parsing
 PyMuPDF==1.25.0
 python-docx==1.1.2
@@ -38,8 +35,8 @@ apscheduler==3.10.4
 python-dotenv==1.0.1
 aiofiles==24.1.0
 
-# --- Optional (uncomment to enable) ---
-# supabase==2.10.0          # file storage
+# --- Optional heavy deps (install locally, not on free-tier cloud) ---
+# spacy==3.8.3              # entity extraction (regex fallback built-in)
 # sentence-transformers==3.3.1
 # torch==2.5.1
 # openai-whisper==20240930

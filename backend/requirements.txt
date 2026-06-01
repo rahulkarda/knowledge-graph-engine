@@ -6,21 +6,18 @@ pydantic-settings==2.6.1
 python-multipart==0.0.12
 
 # Database
-sqlalchemy==2.0.36
+sqlalchemy[asyncio]==2.0.36
 alembic==1.14.0
 asyncpg==0.30.0
 psycopg2-binary==2.9.10
+aiosqlite==0.20.0
+greenlet==3.1.1
 
 # Vector Store
 qdrant-client==1.12.1
 
-# Embeddings (FREE, local, no API key)
-sentence-transformers==3.3.1
-torch==2.5.1
-
-# NLP
+# NLP — lightweight, no GPU needed
 spacy==3.8.3
-# Run after install: python -m spacy download en_core_web_sm
 
 # File parsing
 PyMuPDF==1.25.0
@@ -31,16 +28,8 @@ httpx==0.28.1
 beautifulsoup4==4.12.3
 lxml==5.3.0
 
-# Audio transcription (FREE, local)
-openai-whisper==20240930
-ffmpeg-python==0.2.0
-
 # Graph algorithms
 networkx==3.4.2
-
-# Q&A (FREE, local)
-transformers==4.47.0
-sentencepiece==0.2.0
 
 # File storage
 supabase==2.10.0
@@ -52,3 +41,11 @@ apscheduler==3.10.4
 python-dotenv==1.0.1
 aiofiles==24.1.0
 slowapi==0.1.9
+
+# --- Optional heavy ML (uncomment to enable semantic search + Q&A) ---
+# sentence-transformers==3.3.1
+# torch==2.5.1
+# openai-whisper==20240930
+# ffmpeg-python==0.2.0
+# transformers==4.47.0
+# sentencepiece==0.2.0

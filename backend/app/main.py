@@ -1,11 +1,12 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
+from app.auth import require_api_key
 from app.routes import nodes, ingest, search, graph, qa, tags, timeline, edges
 
 
@@ -23,6 +24,7 @@ app = FastAPI(
     description="Personal knowledge graph — ingest, connect, discover.",
     version="1.0.0",
     lifespan=lifespan,
+    dependencies=[Depends(require_api_key)],
 )
 
 app.add_middleware(
@@ -44,6 +46,6 @@ app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
 app.include_router(timeline.router, prefix="/api/v1/timeline", tags=["timeline"])
 
 
-@app.get("/health")
+@app.get("/health", dependencies=[])
 async def health():
     return {"status": "ok"}

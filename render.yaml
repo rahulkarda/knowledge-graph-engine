@@ -14,6 +14,8 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
+      - key: API_KEY
+        generateValue: true
       - key: ALLOWED_ORIGINS
         value: '["https://knowledge-graph-engine-4czt68x4o.vercel.app","https://knowledge-graph-engine-alhmi4n7h.vercel.app","https://knowledge-graph-engine.vercel.app","https://frontend-murex-three-13.vercel.app","http://localhost:5173","http://localhost:3000"]'
       - key: PYTHON_VERSION

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     supabase_key: str = ""
     supabase_bucket: str = "uploads"
 
+    # Auth
+    api_key: str = ""  # empty = auth disabled (local dev). Set in production env.
+
     # CORS
     allowed_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 

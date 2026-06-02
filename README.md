@@ -16,6 +16,7 @@
   <a href="#-demo">Demo</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-quick-start">Quick Start</a> •
+  <a href="#-security">Security</a> •
   <a href="#-deployment">Deployment</a> •
   <a href="#-api">API</a>
 </p>
@@ -34,13 +35,13 @@
 | 🔗 **Connection Discovery** | Surface non-obvious links between ideas you didn't know were related |
 | 🏷️ **Auto-Tagging** | Notes are automatically tagged on ingest |
 | 🕐 **Timeline** | Chronological feed of all captured knowledge |
-| 🌙 **Dark UI** | Clean, distraction-free dark interface |
+| 🔒 **API Key Auth** | All routes protected — only you can read or write your notes |
 
 ---
 
 ## 🖼️ Demo
 
-> The app runs locally — open **http://localhost:5173** after setup.
+> **Live app:** open the frontend URL after deployment.
 
 **Dashboard** — overview of recent captures, stats, and discovered connections  
 **Capture** — 4-tab input panel: Note · File · URL · Voice  
@@ -49,6 +50,29 @@
 **Search** — ranked semantic search across your entire knowledge base  
 **Connections** — auto-discovered thematic links between notes  
 **Timeline** — all knowledge sorted newest-first, grouped by date  
+
+---
+
+## 🔒 Security
+
+**Your notes are private.** Every API route is protected by a static API key. Without it, all requests return `401 Unauthorized`.
+
+### How it works
+- The backend checks for `Authorization: Bearer <API_KEY>` on every request
+- The frontend sends the key automatically via `VITE_API_KEY` (a Vercel env var — never exposed in the repo)
+- `/health` is the only public endpoint (needed for uptime checks)
+
+### Setting up auth
+
+**Backend (Render):** Set the `API_KEY` environment variable in your Render dashboard:
+```bash
+# Generate a secure key
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**Frontend (Vercel):** Add the same key as `VITE_API_KEY` in Vercel project settings → Environment Variables → Production.
+
+> ⚠️ **Local dev:** Leave `API_KEY` empty in `.env` to disable auth completely — no key needed during development.
 
 ---
 
@@ -77,10 +101,10 @@
 ### Deployment (all free tiers)
 | Service | Role |
 |---------|------|
-| **Railway** | Python backend container |
-| **Vercel** | React frontend |
-| **Supabase** | PostgreSQL + file storage |
-| **Qdrant Cloud** | Persistent vector store |
+| **Render.com** | Python backend (auto-deploys on push) |
+| **Vercel** | React frontend (auto-deploys on push) |
+| **Supabase** | PostgreSQL + file storage (optional) |
+| **Qdrant Cloud** | Persistent vector store (optional) |
 
 ---
 
@@ -89,11 +113,12 @@
 ### Prerequisites
 - Python 3.11+
 - Node.js 20+
-- Docker (for local Qdrant)
+- Docker (optional, for local Qdrant)
 
-### 1. Start Qdrant
+### 1. Clone
 ```bash
-docker run -p 6333:6333 qdrant/qdrant
+git clone https://github.com/rahulkarda/knowledge-graph-engine.git
+cd knowledge-graph-engine
 ```
 
 ### 2. Backend
@@ -104,13 +129,15 @@ python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
 pip install fastapi "uvicorn[standard]" pydantic pydantic-settings \
-    sqlalchemy aiosqlite greenlet python-multipart httpx beautifulsoup4 lxml
+    sqlalchemy aiosqlite greenlet python-multipart httpx beautifulsoup4 lxml \
+    networkx PyMuPDF python-docx apscheduler qdrant-client
 
-cp .env.example .env               # defaults use SQLite + local Qdrant
+cp .env.example .env
+# API_KEY is empty by default → auth disabled locally (safe for personal use)
 
 uvicorn app.main:app --reload
-# → http://localhost:8000
-# → http://localhost:8000/docs  (Swagger UI)
+# API: http://localhost:8000
+# Docs: http://localhost:8000/docs
 ```
 
 ### 3. Frontend
@@ -118,7 +145,7 @@ uvicorn app.main:app --reload
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173
+# App: http://localhost:5173
 ```
 
 ### 4. (Optional) Enable full AI features
@@ -126,69 +153,70 @@ npm run dev
 # Semantic search + embeddings
 pip install sentence-transformers qdrant-client
 
-# Entity extraction
+# Entity extraction (spaCy)
 pip install spacy && python -m spacy download en_core_web_sm
 
 # Voice transcription
-pip install openai-whisper
-brew install ffmpeg              # macOS
-# apt install ffmpeg             # Ubuntu
+pip install openai-whisper && brew install ffmpeg   # macOS
 
-# Q&A generation
+# Local Q&A generation
 pip install transformers sentencepiece
 ```
 
-### One-command local stack
+### One-command local stack (with Qdrant)
 ```bash
 docker-compose up --build
-# backend: http://localhost:8000
-# frontend: http://localhost:5173
 ```
 
 ---
 
 ## 🌍 Deployment
 
-### Backend → Railway
+### Option A — Render + Vercel (recommended, no credit card)
 
-1. Push this repo to GitHub
-2. New project on [railway.app](https://railway.app) → **Deploy from GitHub**
-3. Set root directory to `backend/`
-4. Add environment variables:
+**Backend → Render.com**
 
-```env
-DATABASE_URL=postgresql+asyncpg://user:pass@host/db   # from Supabase
-QDRANT_URL=https://your-cluster.qdrant.io
-QDRANT_API_KEY=your-key
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_KEY=your-anon-key
-ALLOWED_ORIGINS=["https://your-app.vercel.app"]
-SECRET_KEY=your-32-char-secret
-```
+1. Connect your GitHub repo to [render.com](https://render.com)
+2. The `render.yaml` at repo root configures everything automatically
+3. After deploy, go to **Environment** → copy the auto-generated `API_KEY`
 
-### Frontend → Vercel
+**Frontend → Vercel**
 
-1. New project on [vercel.com](https://vercel.com) → import repo
+1. Connect your GitHub repo to [vercel.com](https://vercel.com)
 2. Set root directory to `frontend/`
-3. Add environment variable:
-
+3. Add these environment variables:
 ```env
-VITE_API_BASE_URL=https://your-backend.up.railway.app
+VITE_API_BASE_URL=https://your-backend.onrender.com
+VITE_API_KEY=<same API_KEY from Render>
 ```
 
-### Services to set up first
+### Option B — Railway + Vercel
 
-| Service | Link | What to do |
-|---------|------|------------|
-| Supabase | [supabase.com](https://supabase.com) | Create project → copy PostgreSQL URL + anon key |
-| Qdrant Cloud | [cloud.qdrant.io](https://cloud.qdrant.io) | Free cluster → copy URL + API key |
+1. Connect repo to [railway.app](https://railway.app) (requires free account with payment method on file)
+2. Set root directory to `backend/`
+3. Add environment variables (see `backend/.env.example`)
+4. Deploy frontend to Vercel as above
+
+### Required environment variables (backend)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `API_KEY` | Yes (prod) | Secret key to protect all routes |
+| `DATABASE_URL` | No | Defaults to SQLite. Use `postgresql+asyncpg://...` for Postgres |
+| `QDRANT_URL` | No | Qdrant endpoint. Defaults to localhost |
+| `QDRANT_API_KEY` | No | Required if using Qdrant Cloud |
+| `SECRET_KEY` | No | App secret, auto-generated |
+| `ALLOWED_ORIGINS` | No | JSON array of allowed CORS origins |
 
 ---
 
 ## 📡 API Reference
 
+All endpoints require `Authorization: Bearer <API_KEY>` (except `/health`).
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/health` | Health check (public) |
 | `POST` | `/api/v1/ingest/note` | Ingest a text note |
 | `POST` | `/api/v1/ingest/file` | Upload PDF, DOCX, or TXT |
 | `POST` | `/api/v1/ingest/url` | Scrape and ingest a URL |
@@ -206,7 +234,7 @@ VITE_API_BASE_URL=https://your-backend.up.railway.app
 | `GET` | `/api/v1/tags` | List all tags |
 | `GET` | `/api/v1/timeline` | Chronological knowledge feed |
 
-Full interactive docs: **http://localhost:8000/docs**
+Interactive docs: **`<your-backend-url>/docs`**
 
 ---
 
@@ -216,7 +244,8 @@ Full interactive docs: **http://localhost:8000/docs**
 knowledge-graph-engine/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI entry point
+│   │   ├── main.py              # FastAPI entry point + CORS + auth
+│   │   ├── auth.py              # API key authentication dependency
 │   │   ├── config.py            # Settings from .env
 │   │   ├── database.py          # SQLAlchemy async engine
 │   │   ├── models/              # ORM: Node, Edge, Entity, Tag
@@ -229,24 +258,29 @@ knowledge-graph-engine/
 │   │       ├── embedding_service.py
 │   │       ├── vector_store.py  # Qdrant wrapper
 │   │       └── qa_service.py    # RAG pipeline
+│   ├── .env.example
 │   ├── Dockerfile
+│   ├── render.yaml
 │   └── requirements.txt
 │
 ├── frontend/
 │   └── src/
 │       ├── pages/               # Dashboard, Capture, GraphView, Search, …
 │       ├── components/          # graph, ingest, search, qa, layout
-│       ├── api/hooks/           # TanStack Query hooks
+│       ├── api/
+│       │   ├── client.js        # Axios + API key injection
+│       │   └── hooks/           # TanStack Query hooks
 │       └── store/uiStore.js     # Zustand UI state
 │
-└── docker-compose.yml
+├── render.yaml                  # Render.com auto-deploy config
+└── docker-compose.yml           # Local dev stack
 ```
 
 ---
 
 ## 🔮 Roadmap
 
-- [ ] User authentication (Supabase Auth)
+- [ ] User authentication with multiple accounts (Supabase Auth)
 - [ ] Mobile-responsive layout
 - [ ] Export graph as JSON / CSV
 - [ ] Obsidian / Notion import
@@ -261,4 +295,4 @@ MIT — use it, fork it, build on it.
 
 ---
 
-<p align="center">Built with ❤️ by <a href="https://github.com/rahulkarda">Rahul Karda</a></p>
+<p align="center">Built by <a href="https://github.com/rahulkarda">Rahul Karda</a></p>

@@ -12,7 +12,6 @@ from app.routes import nodes, ingest, search, graph, qa, tags, timeline, edges
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables on startup (dev convenience; use Alembic in production)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
@@ -24,7 +23,6 @@ app = FastAPI(
     description="Personal knowledge graph — ingest, connect, discover.",
     version="1.0.0",
     lifespan=lifespan,
-    dependencies=[Depends(require_api_key)],
 )
 
 app.add_middleware(
@@ -36,16 +34,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(nodes.router, prefix="/api/v1/nodes", tags=["nodes"])
-app.include_router(edges.router, prefix="/api/v1/graph/edges", tags=["edges"])
-app.include_router(ingest.router, prefix="/api/v1/ingest", tags=["ingest"])
-app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
-app.include_router(graph.router, prefix="/api/v1/graph", tags=["graph"])
-app.include_router(qa.router, prefix="/api/v1/qa", tags=["qa"])
-app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
-app.include_router(timeline.router, prefix="/api/v1/timeline", tags=["timeline"])
+# Auth applied per-router so /health stays public
+_auth = [Depends(require_api_key)]
+
+app.include_router(nodes.router,    prefix="/api/v1/nodes",        tags=["nodes"],    dependencies=_auth)
+app.include_router(edges.router,    prefix="/api/v1/graph/edges",  tags=["edges"],    dependencies=_auth)
+app.include_router(ingest.router,   prefix="/api/v1/ingest",       tags=["ingest"],   dependencies=_auth)
+app.include_router(search.router,   prefix="/api/v1/search",       tags=["search"],   dependencies=_auth)
+app.include_router(graph.router,    prefix="/api/v1/graph",        tags=["graph"],    dependencies=_auth)
+app.include_router(qa.router,       prefix="/api/v1/qa",           tags=["qa"],       dependencies=_auth)
+app.include_router(tags.router,     prefix="/api/v1/tags",         tags=["tags"],     dependencies=_auth)
+app.include_router(timeline.router, prefix="/api/v1/timeline",     tags=["timeline"], dependencies=_auth)
 
 
-@app.get("/health", dependencies=[])
+@app.get("/health")
 async def health():
     return {"status": "ok"}
